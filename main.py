@@ -1,12 +1,14 @@
 import requests
 from dataclasses import dataclass, asdict, field
-from typing import List, Self, Dict, Any
-from datetime import date, timedelta
+from typing import List, Self, Dict, Any, Tuple
+from configparser import ConfigParser
+from datetime import datetime, date
 from pygeojson import Point, Feature
 from stores import PgStore
 from data_types import ValueType, Properties, InputSource, OutputStore
 
 GEOMETRY_FIELD = "geom"
+DATE_FORMAT = "%Y-%m-%d"
 
 
 @dataclass
@@ -29,11 +31,17 @@ class WaveGuide:
 
 
 @dataclass
+class IsoCode:
+    iso3: str
+    code: int
+
+
+@dataclass
 class AcledSource:
     url: str
     email: str
     key: str
-    countries_iso: List[int]
+    countries_iso: List[IsoCode]
     start_date: date
     end_date: date
     properties: Properties = field(
@@ -88,7 +96,7 @@ class AcledSource:
 
     def fetch_and_store(self: Self, store: OutputStore) -> None:
         for iso in self.countries_iso:
-            self.fetch_and_store_from(iso, store)
+            self.fetch_and_store_from(iso.code, store)
 
     @staticmethod
     def objects_to_features(objects: List[Dict[str, Any]]) -> List[Feature]:
@@ -116,16 +124,37 @@ class AcledSource:
             page += 1
 
 
+def get_iso_codes(items: List[Tuple[str, str]]) -> List[IsoCode]:
+    return [IsoCode(iso3, int(code)) for (iso3, code) in items]
+
+
 def main() -> None:
     today = date.today()
-    acled_source = AcledSource(
-        "https://api.acleddata.com/acled/read",
-        "",
-        "",
-        [430],
-        today - timedelta(days=365 * 2),
-        today,
+    acled_config = ConfigParser()
+    acled_config.read("./configs/acled.toml")
+
+    acled_codes = get_iso_codes(acled_config.items("codes"))
+
+    start_date_str = acled_config.get("api", "start_date")
+    start_date = datetime.strptime(start_date_str, DATE_FORMAT).date()
+
+    end_date_str = acled_config.get("api", "end_date", fallback=None)
+    end_date = (
+        date.today()
+        if end_date_str is None
+        else datetime.strptime(end_date_str, DATE_FORMAT).date()
     )
+
+    acled_source = AcledSource(
+        acled_config.get("api", "url"),
+        acled_config.get("api", "email"),
+        acled_config.get("api", "key"),
+        acled_codes,
+        start_date,
+        end_date,
+    )
+
+    breakpoint()
 
     store = PgStore("schema", "table", acled_source.properties)
     store.init()

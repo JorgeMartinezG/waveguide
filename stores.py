@@ -34,11 +34,15 @@ class PgStore:
         print(query)
 
     def save(self: Self, features: List[Feature]) -> None:
-        sql_query = sql.SQL("INSERT INTO {schema}.{table_name}({fields}) VALUES {values}").format(
+        sql_query = sql.SQL(
+            "INSERT INTO {schema}.{table_name}({fields}) VALUES {values}"
+        ).format(
             schema=sql.Identifier(self.schema),
             table_name=sql.Identifier(self.table_name),
-            fields=sql.SQL(",").join([sql.Identifier(k) for k, _ in self.columns.items()]),
-            values=["%s" for _,_ in self.columns.items()]
+            fields=sql.SQL(",").join(
+                [sql.Identifier(k) for k, _ in self.columns.items()]
+            ),
+            values=["%s" for _, _ in self.columns.items()],
         )
         print(sql_query)
 
