@@ -1,9 +1,10 @@
 import requests
 from dataclasses import dataclass, asdict, field
-from typing import List, Self
+from typing import List, Self, Dict, Any
 from datetime import date, timedelta
+from pygeojson import Point, Feature
 from stores import PgStore
-from data_types import PgType, Properties, InputSource, OutputStore
+from data_types import ValueType, Properties, InputSource, OutputStore
 
 GEOMETRY_FIELD = "geom"
 
@@ -35,40 +36,40 @@ class AcledSource:
     countries_iso: List[int]
     start_date: date
     end_date: date
-    props: Properties = field(
+    properties: Properties = field(
         default_factory=lambda: {
-            "actor1": PgType.VARCHAR,
-            "actor2": PgType.VARCHAR,
-            "admin1": PgType.VARCHAR,
-            "admin2": PgType.VARCHAR,
-            "admin3": PgType.VARCHAR,
-            "assoc_actor_1": PgType.VARCHAR,
-            "assoc_actor_2": PgType.VARCHAR,
-            "civilian_targeting": PgType.VARCHAR,
-            "country": PgType.VARCHAR,
-            "disorder_type": PgType.VARCHAR,
-            "event_date": PgType.VARCHAR,
-            "event_id_cnty": PgType.VARCHAR,
-            "event_type": PgType.VARCHAR,
-            "fatalities": PgType.INT,
-            "geo_precision": PgType.INT,
-            "inter1": PgType.VARCHAR,
-            "inter2": PgType.VARCHAR,
-            "interaction": PgType.VARCHAR,
-            "iso": PgType.VARCHAR,
-            "latitude": PgType.FLOAT,
-            "location": PgType.VARCHAR,
-            "longitude": PgType.FLOAT,
-            "notes": PgType.VARCHAR,
-            "region": PgType.VARCHAR,
-            "source": PgType.VARCHAR,
-            "source_scale": PgType.VARCHAR,
-            "sub_event_type": PgType.VARCHAR,
-            "tags": PgType.VARCHAR,
-            "time_precision": PgType.VARCHAR,
-            "timestamp": PgType.VARCHAR,
-            "year": PgType.VARCHAR,
-            GEOMETRY_FIELD: PgType.POINT,
+            "actor1": ValueType.VARCHAR,
+            "actor2": ValueType.VARCHAR,
+            "admin1": ValueType.VARCHAR,
+            "admin2": ValueType.VARCHAR,
+            "admin3": ValueType.VARCHAR,
+            "assoc_actor_1": ValueType.VARCHAR,
+            "assoc_actor_2": ValueType.VARCHAR,
+            "civilian_targeting": ValueType.VARCHAR,
+            "country": ValueType.VARCHAR,
+            "disorder_type": ValueType.VARCHAR,
+            "event_date": ValueType.VARCHAR,
+            "event_id_cnty": ValueType.VARCHAR,
+            "event_type": ValueType.VARCHAR,
+            "fatalities": ValueType.INT,
+            "geo_precision": ValueType.INT,
+            "inter1": ValueType.VARCHAR,
+            "inter2": ValueType.VARCHAR,
+            "interaction": ValueType.VARCHAR,
+            "iso": ValueType.VARCHAR,
+            "latitude": ValueType.FLOAT,
+            "location": ValueType.VARCHAR,
+            "longitude": ValueType.FLOAT,
+            "notes": ValueType.VARCHAR,
+            "region": ValueType.VARCHAR,
+            "source": ValueType.VARCHAR,
+            "source_scale": ValueType.VARCHAR,
+            "sub_event_type": ValueType.VARCHAR,
+            "tags": ValueType.VARCHAR,
+            "time_precision": ValueType.VARCHAR,
+            "timestamp": ValueType.VARCHAR,
+            "year": ValueType.VARCHAR,
+            GEOMETRY_FIELD: ValueType.POINT,
         }
     )
 
@@ -89,12 +90,20 @@ class AcledSource:
         for iso in self.countries_iso:
             self.fetch_and_store_from(iso, store)
 
+    @staticmethod
+    def objects_to_features(objects: List[Dict[str, Any]]) -> List[Feature]:
+        return [
+            Feature(
+                geometry=Point(o["longitude"], o["latitude"]), properties=o
+            )
+            for o in objects
+        ]
+
     def fetch_and_store_from(self: Self, iso: int, store: OutputStore) -> None:
         page: int = 1
         while True:
             params = self.build_request_params(iso, page)
             resp = requests.get(self.url, params=asdict(params))
-
             resp.raise_for_status()
 
             json_response = resp.json()
@@ -102,6 +111,7 @@ class AcledSource:
             if count == 0:
                 break
 
+            features = AcledSource.objects_to_features(json_response["data"])
             store.save(json_response["data"])
             page += 1
 
@@ -117,9 +127,12 @@ def main() -> None:
         today,
     )
 
-    wave_guide = WaveGuide(acled_source, PgStore())
+    store = PgStore("schema", "table", acled_source.properties)
+    store.init()
+    store.save([])
+    # wave_guide = WaveGuide(acled_source, store)
 
-    wave_guide.process()
+    # wave_guide.process()
 
 
 if __name__ == "__main__":

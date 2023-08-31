@@ -1,10 +1,14 @@
-from typing import Dict, Self, Any
+from typing import Dict, Self, Any, List
 from typing_extensions import Protocol
+from pygeojson import Feature
 from enum import Enum
 
 
 class OutputStore(Protocol):
-    def save(self: Self, features: Any) -> None:
+    def init(self: Self) -> None:
+        ...
+
+    def save(self: Self, features: List[Feature]) -> None:
         ...
 
 
@@ -13,11 +17,11 @@ class InputSource(Protocol):
         ...
 
 
-class PgType(Enum):
+class ValueType(Enum):
     VARCHAR = 0
     INT = 1
     FLOAT = 2
     POINT = 3
 
 
-Properties = Dict[str, PgType]
+Properties = Dict[str, ValueType]
