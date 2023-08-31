@@ -1,1 +1,1 @@
-CHUNK_SIZE: str = 2000
+CHUNK_SIZE: int = 2000
