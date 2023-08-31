@@ -1,0 +1,1 @@
+CHUNK_SIZE: str = 2000
