@@ -3,7 +3,7 @@ from typing import Self
 from configparser import ConfigParser
 from datetime import datetime, date
 from sources import AcledSource, get_iso_codes
-from stores import PgStore
+from stores import PgStore, PgConnectionParams
 from data_types import InputSource, OutputStore
 
 DATE_FORMAT = "%Y-%m-%d"
@@ -44,10 +44,17 @@ def main() -> None:
         end_date,
     )
 
+    pg_config = ConfigParser()
+    pg_config.read("./configs/postgres.toml")
+
+    connection = PgConnectionParams(**dict(pg_config["database"]))
+    db_schema = pg_config.get("schema", "name")
+    table_name = acled_config.get("layer", "name")
+
+    store = PgStore(table_name, db_schema, acled_source.properties, connection)
+    store.init()
     breakpoint()
 
-    store = PgStore("schema", "table", acled_source.properties)
-    store.init()
     store.save([])
     # wave_guide = WaveGuide(acled_source, store)
 

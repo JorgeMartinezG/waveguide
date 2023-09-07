@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+import psycopg
+from dataclasses import dataclass, asdict
 from psycopg import sql
 from typing import Self, List
 from pygeojson import Feature
@@ -6,10 +7,20 @@ from data_types import Properties, ValueType
 
 
 @dataclass
+class PgConnectionParams:
+    host: str
+    user: str
+    password: str
+    port: str
+    dbname: str
+
+
+@dataclass
 class PgStore:
     table_name: str
     schema: str
     columns: Properties
+    connection: PgConnectionParams
 
     def init(self: Self) -> None:
         columns_list: List[str] = []
@@ -28,9 +39,15 @@ class PgStore:
 
         columns_str = ",\n".join(columns_list)
 
-        query = f"CREATE TABLE IF NOT EXISTS {self.schema}.{self.table_name} ({columns_str})"
 
-        print(query)
+        conn_dict = asdict(self.connection)
+        with psycopg.connect(**conn_dict) as conn:
+            with conn.cursor() as cur:
+                query = f"CREATE SCHEMA IF NOT EXISTS {self.schema}"
+                cur.execute(query)
+
+                query = f"CREATE TABLE IF NOT EXISTS {self.schema}.{self.table_name} ({columns_str})"
+                cur.execute(query)
 
     def save(self: Self, features: List[Feature]) -> None:
         sql_query = sql.SQL(
