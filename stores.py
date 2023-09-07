@@ -39,7 +39,6 @@ class PgStore:
 
         columns_str = ",\n".join(columns_list)
 
-
         conn_dict = asdict(self.connection)
         with psycopg.connect(**conn_dict) as conn:
             with conn.cursor() as cur:
