@@ -72,20 +72,19 @@ class PgStore:
             else f"ST_SETSRID(%({key})s::geometry, 4326)"
             for key in self.columns.keys()
         ]
-        expressions_str = ",".join(expressions)
+        sql_expressions = [sql.SQL(e) for e in expressions]
 
         rows_values = [PgStore.get_values(f, self.columns) for f in features]
 
         sql_query = sql.SQL(
-            "INSERT INTO {schema}.{table_name}({fields}) VALUES ("
-            + expressions_str
-            + ")"
+            "INSERT INTO {schema}.{table_name}({fields}) VALUES ({values})"
         ).format(
             schema=sql.Identifier(self.schema),
             table_name=sql.Identifier(self.table_name),
             fields=sql.SQL(",").join(
                 [sql.Identifier(k) for k, _ in self.columns.items()]
             ),
+            values=sql.SQL(",").join(sql_expressions)
         )
 
         with psycopg.connect(**asdict(self.connection)) as conn:
