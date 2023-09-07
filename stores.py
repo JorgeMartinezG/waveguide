@@ -1,7 +1,6 @@
-import psycopg
 from dataclasses import dataclass
 from psycopg import sql
-from typing import Self, Any, List
+from typing import Self, List
 from pygeojson import Feature
 from data_types import Properties, ValueType
 

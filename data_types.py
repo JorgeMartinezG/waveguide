@@ -1,4 +1,4 @@
-from typing import Dict, Self, Any, List
+from typing import Dict, Self, List
 from typing_extensions import Protocol
 from pygeojson import Feature
 from enum import Enum
