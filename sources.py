@@ -3,9 +3,7 @@ from datetime import date
 from dataclasses import dataclass, asdict, field
 from typing import List, Self, Dict, Any, Tuple
 from pygeojson import Point, Feature
-from data_types import ValueType, Properties, OutputStore
-
-GEOMETRY_FIELD = "geom"
+from data_types import ValueType, Properties, OutputStore, GEOMETRY_FIELD
 
 
 @dataclass
@@ -93,7 +91,7 @@ class AcledSource:
     @staticmethod
     def objects_to_features(objects: List[Dict[str, Any]]) -> List[Feature]:
         return [
-            Feature(geometry=Point(o["longitude"], o["latitude"]), properties=o)
+            Feature(geometry=Point((o["longitude"], o["latitude"])), properties=o)
             for o in objects
         ]
 
@@ -109,6 +107,8 @@ class AcledSource:
             if count == 0:
                 break
 
-            features = AcledSource.objects_to_features(json_response["data"])
-            store.save(json_response["data"])
+            features: List[Feature] = AcledSource.objects_to_features(
+                json_response["data"]
+            )
+            store.save(features)
             page += 1

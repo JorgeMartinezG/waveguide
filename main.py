@@ -15,6 +15,7 @@ class WaveGuide:
     output_store: OutputStore
 
     def process(self: Self) -> None:
+        self.output_store.init()
         self.input_source.fetch_and_store(self.output_store)
 
 
@@ -52,13 +53,9 @@ def main() -> None:
     table_name = acled_config.get("layer", "name")
 
     store = PgStore(table_name, db_schema, acled_source.properties, connection)
-    store.init()
-    breakpoint()
-
-    store.save([])
-    # wave_guide = WaveGuide(acled_source, store)
-
-    # wave_guide.process()
+    # store.save([])
+    wave_guide = WaveGuide(acled_source, store)
+    wave_guide.process()
 
 
 if __name__ == "__main__":

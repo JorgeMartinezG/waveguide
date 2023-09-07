@@ -3,6 +3,8 @@ from typing_extensions import Protocol
 from pygeojson import Feature
 from enum import Enum
 
+GEOMETRY_FIELD = "geom"
+
 
 class OutputStore(Protocol):
     def init(self: Self) -> None:
