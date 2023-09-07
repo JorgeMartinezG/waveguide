@@ -88,5 +88,5 @@ class PgStore:
         )
 
         with psycopg.connect(**asdict(self.connection)) as conn:
-            with psycopg.ClientCursor(conn) as cur:
-                [cur.execute(sql_query, r) for r in rows_values]
+            with conn.cursor() as cur:
+                cur.executemany(sql_query, rows_values)
